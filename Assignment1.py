@@ -74,7 +74,7 @@ def make_sympy(s:str):
         if not char.isalpha():
             print("Error: lone floating operator",char)
             return
-        return char
+        return symbols(char)
     for i,item in enumerate(array):
         if item == "¬":
             if i==len(array)-1:
@@ -115,7 +115,9 @@ def check_proof(lines):
             continue
         step=line.step.replace(" ","")
         print(step)
-        if step.lower()=="ax1":
+        if step.lower()=="premise":
+            continue
+        elif step.lower()=="ax1":
             if line.expr != axiom1:
                 works=False
                 break
@@ -130,21 +132,32 @@ def check_proof(lines):
         elif re.search(r"sub[0-9]+\[([a-z]:=[a-z¬→\(\),]+)+\]",step.lower()):
             substr=re.search(r"\[([a-zA-Z]:=[a-zA-Z¬→\(\),]+)+\]",step).group(0).replace("[", "").replace("]", "")
             subint=int(re.search(r"[0-9]+",step).group())
-            print(subint,i)
             if subint>=i or subint<=0:
                 works=False
                 break
             items = [item.strip() for item in substr.split(',')]
             print(items)
+            subby=lines[subint].expr
+            for item in items:
+                thing=re.search(r"([a-zA-Z]):=([a-zA-Z¬→\(\)]+)",item)
+                LHS=symbols(thing.group(1))
+                RHS=make_sympy(thing.group(2))
+                print(LHS,RHS)
+                subby=subby.subs(LHS,RHS)
+            if subby!=line.expr:
+                works=False
+                break
         else: 
             print("AAAAAAA")
+            works=False
+            break
     if works:
         print("yippeeeee!")
     else:
         print("WOMP WOMP")
 
-test_line1=proof_line(axiom1,"ax 1")
-test_line=proof_line(axiom1,"sub1[A:=¬p,B:=q]")
+test_line1=proof_line(axiom2,"ax 2")
+test_line=proof_line(make_sympy("(¬p → (q → ¬p)) → ((¬p → q) → (¬p → ¬p))"),"Sub1[C:=¬p,B:=q,A:=¬p]")
 test_proof=[test_line,test_line1,test_line]
 check_proof(test_proof)
 
