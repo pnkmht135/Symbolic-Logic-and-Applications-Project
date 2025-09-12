@@ -19,7 +19,26 @@ from sympy.logic import simplify_logic
 from sympy.parsing.sympy_parser import parse_expr
 import re
 
-def parser(s:str):
+def remove_outer_brackets(s):
+    if not s or s[0] != '(' or s[-1] != ')':
+        return s  
+
+    depth = 0
+    for i, char in enumerate(s):
+        if char == '(':
+            depth += 1
+        elif char == ')':
+            depth -= 1
+        if depth == 0 and i < len(s) - 1: # not fully wrapped
+            return s
+    return s[1:-1] # fully wrapped
+
+def parser(s):
+    if type(s) == list:
+        s = "".join(f"({item})" for item in s)
+    if type(s)!=str:
+        print("Parsing error, wrong type entered")
+    s=remove_outer_brackets(s)
     s=s.replace(" ", "")
     stack = []
     result = []
@@ -39,7 +58,7 @@ def parser(s:str):
                     result.append(s[start + 1:i])
         elif stack==[]:
             if char == "¬" and (len(s)>2) and i!=len(s)-1 and s[i+1].isalpha():
-                # print(s[i:i+2],"eeee")
+                print(s[i:i+2],"eeee")
                 result.append(s[i:i+2])
                 skip=True
             else:
@@ -63,20 +82,20 @@ def make_sympy(s:str):
                 return
             # print(item,array[i+1],"!!!!!!!!!")
             answer=Not(make_sympy(array[i+1]))
-            break # wont nessisarily break
+            # wont nessisarily break
         if item == "→":
             if i==0 or i==len(array)-1:
                 print("Error floating →")
                 return
             if answer:
-                answer=Implies(answer,make_sympy(array[i+1]))
+                answer=Implies(answer,make_sympy(array[i+1:]))
             else:
-                answer=Implies(make_sympy(array[i-1]),make_sympy(array[i+1]))
+                answer=Implies(make_sympy(array[i-1]),make_sympy(array[i+1:]))
             break
-        if i==len(array)-1:
-            print("ERROR no operators")
+        # if i==len(array)-1:
+            # print("ERROR no operators")
     return answer
 # print(parser(parser(AX3)[0]))
-print(make_sympy(AX3))
+print(make_sympy("¬(¬B → ¬A) → ¬(A → B)"))
 
 # recursive function that splits shit by brackets 
