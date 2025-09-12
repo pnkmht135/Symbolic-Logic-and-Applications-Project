@@ -4,7 +4,7 @@ sample="""
 2.⊢ (¬p → (B → C)) → ((¬p → B) → (¬p → C))...Sub1[A:=¬p]\n
 3.⊢ (¬p → (q → ¬p)) → ((¬p → q) → (¬p → ¬p))...Sub2[C:=¬p,B:=q]\n
 4.⊢ (A → (B → A))...AX1\n
-5.⊢ (¬p → (q → ¬p))...Sub[A:=¬p,B:=q]\n
+5.⊢ (¬p → (q → ¬p))...Sub4[A:=¬p,B:=q]\n
 6.⊢ ((¬p → q) → (¬p → ¬p))...MP3,5
 """
 
@@ -58,12 +58,12 @@ def parser(s):
                     result.append(s[start + 1:i])
         elif stack==[]:
             if char == "¬" and (len(s)>2) and i!=len(s)-1 and s[i+1].isalpha():
-                print(s[i:i+2],"eeee")
+                # print(s[i:i+2],"eeee")
                 result.append(s[i:i+2])
                 skip=True
             else:
                 result.append(char)
-    print(s,result)
+    # print(s,result)
     return result
     
 def make_sympy(s:str):
@@ -95,7 +95,57 @@ def make_sympy(s:str):
         # if i==len(array)-1:
             # print("ERROR no operators")
     return answer
-# print(parser(parser(AX3)[0]))
-print(make_sympy("¬(¬B → ¬A) → ¬(A → B)"))
 
-# recursive function that splits shit by brackets 
+# print(make_sympy("¬(¬B → ¬A) → ¬(A → B)"))
+
+axiom1=make_sympy(AX1)
+axiom2=make_sympy(AX2)
+axiom3=make_sympy(AX3)
+
+class proof_line:
+    def __init__(self,expr,step):
+        self.expr=expr
+        self.step=step
+
+def check_proof(lines):
+    target=lines[0]
+    works=True
+    for i,line in enumerate(lines):
+        if i==0:
+            continue
+        step=line.step.replace(" ","")
+        print(step)
+        if step.lower()=="ax1":
+            if line.expr != axiom1:
+                works=False
+                break
+        elif step.lower()=="ax2":
+            if line.expr != axiom2:
+                works=False
+                break
+        elif step.lower()=="ax3":
+            if line.expr != axiom3:
+                works=False
+                break
+        elif re.search(r"sub[0-9]+\[([a-z]:=[a-z¬→\(\),]+)+\]",step.lower()):
+            substr=re.search(r"\[([a-zA-Z]:=[a-zA-Z¬→\(\),]+)+\]",step).group(0).replace("[", "").replace("]", "")
+            subint=int(re.search(r"[0-9]+",step).group())
+            print(subint,i)
+            if subint>=i or subint<=0:
+                works=False
+                break
+            items = [item.strip() for item in substr.split(',')]
+            print(items)
+        else: 
+            print("AAAAAAA")
+    if works:
+        print("yippeeeee!")
+    else:
+        print("WOMP WOMP")
+
+test_line1=proof_line(axiom1,"ax 1")
+test_line=proof_line(axiom1,"sub1[A:=¬p,B:=q]")
+test_proof=[test_line,test_line1,test_line]
+check_proof(test_proof)
+
+            
