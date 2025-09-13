@@ -121,13 +121,12 @@ class proof_line:
         self.step=step
 
 def check_proof(lines):
-    target=lines[0]
     works=True
     for i,line in enumerate(lines):
         if i==0:
             continue
         step=line.step.replace(" ","")
-        print("Testing:",step,line.expr)
+        # print("Testing:",step,line.expr)
         if step.lower()=="premise":
             continue
         elif step.lower()=="ax1":
@@ -163,7 +162,6 @@ def check_proof(lines):
                 print(line.expr)
                 break
         elif re.search(r"mp[0-9]+,[0-9]+",step.lower()):
-            print("MODES PONENENENENEN")
             mpstr=re.search(r"mp([0-9]+),([0-9]+)",step.lower())
             mpint1=int(mpstr.group(1))
             mpint2=int(mpstr.group(2))
@@ -234,33 +232,4 @@ do not write any additional text except for the proof, following the format list
 
 user_input = "Provide a valid proof of propositional logic for ((¬p → q) → (¬p → ¬p))"
 
-# Combine the prompt (simulate system + user)
-prompt = system_msg + "\nUser: " + user_input 
-
-# Install transformers from source - only needed for versions <= v4.34
-# pip install git+https://github.com/huggingface/transformers.git
-# pip install accelerate
-
-import torch
-from transformers import pipeline
-
-pipe = pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0", dtype=torch.bfloat16, device_map="auto")
-
-# We use the tokenizer's chat template to format each message - see https://huggingface.co/docs/transformers/main/en/chat_templating
-messages = [
-    {
-        "role": "system",
-        "content": system_msg,
-    },
-    {"role": "user", "content": user_input},
-]
-prompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-outputs = pipe(prompt, max_new_tokens=256, do_sample=True, temperature=0.7, top_k=50, top_p=0.95)
-print(outputs[0]["generated_text"])
-# <|system|>
-# You are a friendly chatbot who always responds in the style of a pirate.</s>
-# <|user|>
-# How many helicopters can a human eat in one sitting?</s>
-# <|assistant|>
-# ...
 
