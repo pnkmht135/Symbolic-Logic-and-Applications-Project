@@ -194,7 +194,10 @@ def check_proof(lines):
             works=False
             break
     if works:
-        print("yippeeeee!")
+        if lines[0].expr == lines[-1].expr:
+            print("yippeee valid proof")
+        else:
+            print("end statement does not match")
     else:
         print("WOMP WOMP")
 
@@ -210,23 +213,54 @@ proof_line(make_sympy("(A → (B → A))"),"ax 1"),
 proof_line(make_sympy("(¬p → (q → ¬p))"),"Sub4[A:=¬p,B:=q]"),
 proof_line(make_sympy("((¬p → q) → (¬p → ¬p))"),"MP3,5")]
 
-# print("thingyyy")
-# for line in test_proof:
-#     print(line.expr,line.step)
 check_proof(test_proof)
-# class RawImplies(Implies):
-#     @classmethod
-#     def eval(cls, lhs, rhs):
-#         # completely disable evaluation
-#         return None
-# p, B, C = symbols("p B C")
-# # Build unevaluated structure
-# expr = RawImplies(
-#     RawImplies(~p, RawImplies(B, C)),
-#     RawImplies(RawImplies(~p, B), RawImplies(~p, C))
-# )
 
-# print("before:", expr)
+system_msg="""
+You are a propositional logic proof generator. Generate proofs using the P2 axiomatic systems, 
+where you can only use these 3 axioms:
+A → (B → A)...AX1
+(A → (B → C)) → ((A → B) → (A → C))...AX2
+(¬B → ¬A) → (A → B)...AX3
+And the only other rules available are Modes ponens and subsitution. Here is an example of the format of proofs:
+((¬p → q) → (¬p → ¬p))...to be proven
+1. (A → (B → C)) → ((A → B) → (A → C))...AX2\n
+2. (¬p → (B → C)) → ((¬p → B) → (¬p → C))...Sub1[A:=¬p]\n
+3. (¬p → (q → ¬p)) → ((¬p → q) → (¬p → ¬p))...Sub2[C:=¬p,B:=q]\n
+4. (A → (B → A))...AX1\n
+5. (¬p → (q → ¬p))...Sub4[A:=¬p,B:=q]\n
+6. ((¬p → q) → (¬p → ¬p))...MP3,5
+do not write any additional text except for the proof, following the format listed above.
+"""
 
-# subby = expr.subs(C,~p)
-# print("after:", subby)
+user_input = "Provide a valid proof of propositional logic for ((¬p → q) → (¬p → ¬p))"
+
+# Combine the prompt (simulate system + user)
+prompt = system_msg + "\nUser: " + user_input 
+
+# Install transformers from source - only needed for versions <= v4.34
+# pip install git+https://github.com/huggingface/transformers.git
+# pip install accelerate
+
+import torch
+from transformers import pipeline
+
+pipe = pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0", dtype=torch.bfloat16, device_map="auto")
+
+# We use the tokenizer's chat template to format each message - see https://huggingface.co/docs/transformers/main/en/chat_templating
+messages = [
+    {
+        "role": "system",
+        "content": system_msg,
+    },
+    {"role": "user", "content": user_input},
+]
+prompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+outputs = pipe(prompt, max_new_tokens=256, do_sample=True, temperature=0.7, top_k=50, top_p=0.95)
+print(outputs[0]["generated_text"])
+# <|system|>
+# You are a friendly chatbot who always responds in the style of a pirate.</s>
+# <|user|>
+# How many helicopters can a human eat in one sitting?</s>
+# <|assistant|>
+# ...
+
