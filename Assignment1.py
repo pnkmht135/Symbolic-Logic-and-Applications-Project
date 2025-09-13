@@ -19,6 +19,12 @@ from sympy.logic import simplify_logic
 from sympy.parsing.sympy_parser import parse_expr
 import re
 
+class RawImplies(Implies):
+    @classmethod
+    def eval(cls, lhs, rhs):
+        # completely disable evaluation
+        return None
+
 def remove_outer_brackets(s):
     if not s or s[0] != '(' or s[-1] != ')':
         return s  
@@ -68,6 +74,7 @@ def parser(s):
     
 def make_sympy(s:str):
     array=parser(s)
+    # print(array)
     answer=None
     if len(array)==1 and isinstance(array[0], str) and len(array[0]) == 1:
         char=array[0]
@@ -81,16 +88,22 @@ def make_sympy(s:str):
                 print("Error: floating ¬")
                 return
             # print(item,array[i+1],"!!!!!!!!!")
-            answer=Not(make_sympy(array[i+1]))
+            answer=Not(make_sympy(array[i+1]), evaluate=False)
+            # print(item,array[i+1],":")
+            # print(answer,"..........")
             # wont nessisarily break
         if item == "→":
             if i==0 or i==len(array)-1:
                 print("Error floating →")
                 return
             if answer:
-                answer=Implies(answer,make_sympy(array[i+1:]))
+                # print(answer,"→",make_sympy(array[i+1:]),":")
+                answer=RawImplies(answer,make_sympy(array[i+1:]), evaluate=False)
+                # print(answer,"......")
             else:
-                answer=Implies(make_sympy(array[i-1]),make_sympy(array[i+1:]))
+                # print(make_sympy(array[i-1]),"→",make_sympy(array[i+1:]),":")
+                answer=RawImplies(make_sympy(array[i-1]),make_sympy(array[i+1:]), evaluate=False)
+                # print(answer,".....")
             break
         # if i==len(array)-1:
             # print("ERROR no operators")
@@ -114,7 +127,7 @@ def check_proof(lines):
         if i==0:
             continue
         step=line.step.replace(" ","")
-        print(step)
+        print("Testing:",step,line.expr)
         if step.lower()=="premise":
             continue
         elif step.lower()=="ax1":
@@ -136,19 +149,48 @@ def check_proof(lines):
                 works=False
                 break
             items = [item.strip() for item in substr.split(',')]
-            print(items)
+            # print(items)
             subby=lines[subint].expr
             for item in items:
                 thing=re.search(r"([a-zA-Z]):=([a-zA-Z¬→\(\)]+)",item)
                 LHS=symbols(thing.group(1))
                 RHS=make_sympy(thing.group(2))
-                print(LHS,RHS)
                 subby=subby.subs(LHS,RHS)
             if subby!=line.expr:
                 works=False
+                print("NO SUBSITUION WRONG!!!")
+                print(subby)
+                print(line.expr)
                 break
+        elif re.search(r"mp[0-9]+,[0-9]+",step.lower()):
+            print("MODES PONENENENENEN")
+            mpstr=re.search(r"mp([0-9]+),([0-9]+)",step.lower())
+            mpint1=int(mpstr.group(1))
+            mpint2=int(mpstr.group(2))
+            if mpint1>=i or mpint2>=i or mpint1<=0 or mpint2<=0:
+                works=False
+                break
+            mp1=lines[mpint1].expr
+            mp2=lines[mpint2].expr
+            if mp1.func!=RawImplies and mp2.func!=RawImplies:
+                works=False
+                break
+            if mp1.func==RawImplies:
+                LHS,RHS=mp1.args
+                if LHS==mp2 and RHS==line.expr:
+                    works = True
+                    break
+                else:
+                    works=False
+            if mp2.func==RawImplies:
+                LHS,RHS=mp2.args
+                if LHS==mp1 and RHS==line.expr:
+                    works = True
+                    break
+                else:
+                    works=False
         else: 
-            print("AAAAAAA")
+            print("AAAAAAA",step.lower())
             works=False
             break
     if works:
@@ -157,8 +199,34 @@ def check_proof(lines):
         print("WOMP WOMP")
 
 test_line1=proof_line(axiom2,"ax 2")
-test_line=proof_line(make_sympy("(¬p → (q → ¬p)) → ((¬p → q) → (¬p → ¬p))"),"Sub1[C:=¬p,B:=q,A:=¬p]")
-test_proof=[test_line,test_line1,test_line]
-check_proof(test_proof)
+# test_line=proof_line(make_sympy("(¬p → (q → ¬p)) → ((¬p → q) → (¬p → ¬p))"),"Sub1[C:=¬p,B:=q,A:=¬p]")
 
-            
+test_proof=[
+proof_line(make_sympy("((¬p → q) → (¬p → ¬p))"),""),
+proof_line(make_sympy("(A → (B → C)) → ((A → B) → (A → C))"),"AX2"),
+proof_line(make_sympy("(¬p → (B → C)) → ((¬p → B) → (¬p → C))"),"Sub1[A:=¬p]"),
+proof_line(make_sympy("(¬p → (q → ¬p)) → ((¬p → q) → (¬p → ¬p))"),"Sub2[C:=¬p,B:=q]"),
+proof_line(make_sympy("(A → (B → A))"),"ax 1"),
+proof_line(make_sympy("(¬p → (q → ¬p))"),"Sub4[A:=¬p,B:=q]"),
+proof_line(make_sympy("((¬p → q) → (¬p → ¬p))"),"MP3,5")]
+
+# print("thingyyy")
+# for line in test_proof:
+#     print(line.expr,line.step)
+check_proof(test_proof)
+# class RawImplies(Implies):
+#     @classmethod
+#     def eval(cls, lhs, rhs):
+#         # completely disable evaluation
+#         return None
+# p, B, C = symbols("p B C")
+# # Build unevaluated structure
+# expr = RawImplies(
+#     RawImplies(~p, RawImplies(B, C)),
+#     RawImplies(RawImplies(~p, B), RawImplies(~p, C))
+# )
+
+# print("before:", expr)
+
+# subby = expr.subs(C,~p)
+# print("after:", subby)
