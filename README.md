@@ -68,3 +68,23 @@ Function that requests an input of a desired proof from the user, calls the LLM 
 - The LLM is instructed by the system message not to include any text besides the proof, and to preceed each proof line by its step number.
 -  Sometimes the LLM restates or rewrites the desired proof conclusion before begining the proof steps. Whenever it does this, the rewriten conclusion does not have a step number, so make_and_check_proof() checks for this and ignores such lines.
 - Otherwise, the function extracts the expression and step from each line using regular expressions and helper functions, and makes them into a proof_line which then constructs a proof array to be passed to check_proof function.
+
+## Benchmark results 
+
+5 different proofs were prompted, out of which the LLM only produced one correctly.
+The outcomes of these tests can be seen in the notebook file
+
+##### 1. ⊢((¬p → q) → (¬p → ¬p))
+LLM produced a correct proof, however on running multiple times it does not always do so.
+
+##### 2. ⊢(p → p)
+LLM produced an incorrect proof, where it called for a subsitution in line 2 for a step that hadn't occured yet (called for line 3).
+
+##### 3. ⊢(¬p→(p→q))
+LLM called an incorrect subsitution on AX1, where it subsituted A for both ¬p and q.
+
+##### 4. ⊢(q→(p→q))
+LLM called an incorrect subsitution, where it subsituted a C for both (p→q) and q
+
+##### 5. p→q,q→r,p ⊢r
+LLM rewrote the desired conclusion into something else, used incorrect bracketing on AX2 and resorted to using "∧" when it is not allowed, etc.
