@@ -18,5 +18,6 @@ Here is an example of the format of proofs for you to follow:
 4. (¬p → (q → ¬p))...Sub3[A:=¬p,B:=q]
 5. ((¬p → q) → (¬p → ¬p))...MP2,4
 
-write nothing but the proof steps in this format, with no additional text
+write nothing but the proof steps in this format, with no additional text. 
+Premises in the prompt will be comma seperated, and the statement to be proved will folloq a ⊢ .
 """
